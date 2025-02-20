@@ -25,21 +25,25 @@ const SignIn = () => {
 
       if (authError) throw authError;
 
+      console.log("Auth Data:", authData); // Debugging log
+
       // Check user profile status
       const { data: profileData } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', authData.user.id)
+        .from("profiles")
+        .select("status")
+        .eq("id", authData.user.id)
         .single();
 
-      if (profileData?.status === 'pending') {
+      console.log("Profile Data:", profileData); // Debugging log
+
+      if (profileData?.status === "pending") {
         toast.error("Your account is pending approval");
         await supabase.auth.signOut();
         setIsLoading(false);
         return;
       }
 
-      if (profileData?.status === 'rejected') {
+      if (profileData?.status === "rejected") {
         toast.error("Your account has been rejected");
         await supabase.auth.signOut();
         setIsLoading(false);
@@ -48,23 +52,27 @@ const SignIn = () => {
 
       // Get user role
       const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', authData.user.id)
-        .single();
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error("Role fetch error:", roleError);
+        throw roleError;
+      }
 
-      // Log role data for debugging purposes
-      console.log("Role Data:", roleData);
+      console.log("Role Data:", roleData); // Debugging log
 
       // Check if the role is 'admin'
-      const isAdmin = roleData?.role === 'admin';
+      const isAdmin = roleData?.role?.trim().toLowerCase() === "admin";
+
+      console.log("Is Admin?", isAdmin); // Debugging log
 
       toast.success("Successfully signed in");
 
       // Navigate based on the role
-      navigate(isAdmin ? '/admin' : '/portal');  // Fixed the missing closing quote here
+      navigate(isAdmin ? "/admin" : "/portal");
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
@@ -106,11 +114,7 @@ const SignIn = () => {
             />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
