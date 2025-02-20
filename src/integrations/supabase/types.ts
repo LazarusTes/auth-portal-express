@@ -9,8 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      fee_settings: {
+        Row: {
+          created_at: string | null
+          fee_amount: number
+          fee_type: string
+          id: string
+          transaction_type: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fee_amount: number
+          fee_type: string
+          id?: string
+          transaction_type: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fee_amount?: number
+          fee_type?: string
+          id?: string
+          transaction_type?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          balance: number | null
           created_at: string
           date_of_birth: string | null
           first_name: string | null
@@ -24,6 +55,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          balance?: number | null
           created_at?: string
           date_of_birth?: string | null
           first_name?: string | null
@@ -37,6 +69,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          balance?: number | null
           created_at?: string
           date_of_birth?: string | null
           first_name?: string | null
@@ -48,6 +81,36 @@ export type Database = {
           residence?: string | null
           status?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      user_limits: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          limit_type: string
+          transaction_type: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          limit_type: string
+          transaction_type: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          limit_type?: string
+          transaction_type?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
