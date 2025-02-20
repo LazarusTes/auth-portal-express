@@ -38,7 +38,7 @@ const AddUserModal = ({ onUserAdded }: AddUserModalProps) => {
     setIsLoading(true);
 
     try {
-      // 1. Create the user in Supabase Auth
+      // 1️⃣ Create the user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: formData.email,
         password: formData.password,
@@ -50,7 +50,7 @@ const AddUserModal = ({ onUserAdded }: AddUserModalProps) => {
       const userId = authData.user.id;
       let idCardUrl = null;
 
-      // 2. Upload ID Card (if provided)
+      // 2️⃣ Upload ID Card (if provided)
       if (formData.idCard) {
         const fileExt = formData.idCard.name.split(".").pop();
         const fileName = `${userId}-${Date.now()}.${fileExt}`;
@@ -62,9 +62,9 @@ const AddUserModal = ({ onUserAdded }: AddUserModalProps) => {
         idCardUrl = publicUrlData.publicUrl;
       }
 
-      // 3. Insert user profile into the database
+      // 3️⃣ Insert user profile into the database
       const { error: profileError } = await supabase.from("profiles").insert({
-        id: userId,
+        id: userId, // Must match auth.users.id
         first_name: formData.firstName,
         last_name: formData.lastName,
         username: formData.username,
@@ -73,12 +73,12 @@ const AddUserModal = ({ onUserAdded }: AddUserModalProps) => {
         residence: formData.residence,
         nationality: formData.nationality,
         id_card_url: idCardUrl,
-        status: "approved", // Auto-approved
+        status: "approved", // Auto-approved user
       });
 
       if (profileError) throw profileError;
 
-      // 4. Assign role
+      // 4️⃣ Assign role
       const { error: roleError } = await supabase.from("user_roles").insert({
         user_id: userId,
         role: formData.role,
@@ -135,7 +135,7 @@ const AddUserModal = ({ onUserAdded }: AddUserModalProps) => {
           </div>
           <div>
             <Label htmlFor="idCard">Upload ID Card</Label>
-            <Input id="idCard" type="file" onChange={handleFileChange} accept="image/*,.pdf" required />
+            <Input id="idCard" type="file" onChange={handleFileChange} accept="image/*,.pdf" />
           </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={isLoading}>
