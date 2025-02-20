@@ -25,56 +25,49 @@ const SignIn = () => {
 
       if (authError) throw authError;
 
-      console.log("Auth Data:", authData); // Debugging log
+      console.log("Auth Data:", authData);
 
-      // Check user profile status
-      const { data: profileData } = await supabase
+      // Fetch user profile
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("status")
         .eq("id", authData.user.id)
         .single();
 
-      console.log("Profile Data:", profileData); // Debugging log
+      if (profileError) throw profileError;
+
+      console.log("Profile Data:", profileData);
 
       if (profileData?.status === "pending") {
-        toast.error("Your account is pending approval");
+        toast.error("Your account is pending approval.");
         await supabase.auth.signOut();
-        setIsLoading(false);
         return;
       }
 
       if (profileData?.status === "rejected") {
-        toast.error("Your account has been rejected");
+        toast.error("Your account has been rejected.");
         await supabase.auth.signOut();
-        setIsLoading(false);
         return;
       }
 
-      // Get user role
+      // Fetch user role
       const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", authData.user.id)
         .maybeSingle();
 
-      if (roleError) {
-        console.error("Role fetch error:", roleError);
-        throw roleError;
-      }
+      if (roleError) throw roleError;
 
-      console.log("Role Data:", roleData); // Debugging log
+      console.log("Role Data:", roleData);
 
-      // Check if the role is 'admin'
       const isAdmin = roleData?.role?.trim().toLowerCase() === "admin";
 
-      console.log("Is Admin?", isAdmin); // Debugging log
-
       toast.success("Successfully signed in");
-
-      // Navigate based on the role
       navigate(isAdmin ? "/admin" : "/portal");
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in");
+      console.error("Sign-in error:", error);
+      toast.error(error.message || "Failed to sign in.");
     } finally {
       setIsLoading(false);
     }
@@ -120,9 +113,12 @@ const SignIn = () => {
         </form>
 
         <div className="text-center text-sm">
-          <a href="/signup" className="text-primary hover:underline">
+          <button
+            onClick={() => navigate("/signup")}
+            className="text-primary hover:underline bg-transparent border-none"
+          >
             Don't have an account? Sign up
-          </a>
+          </button>
         </div>
       </Card>
     </div>
