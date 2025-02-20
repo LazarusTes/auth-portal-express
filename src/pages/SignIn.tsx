@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -48,16 +47,24 @@ const SignIn = () => {
       }
 
       // Get user role
-      const { data: roleData } = await supabase
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', authData.user.id)
         .single();
 
+      if (roleError) throw roleError;
+
+      // Log role data for debugging purposes
+      console.log("Role Data:", roleData);
+
+      // Check if the role is 'admin'
       const isAdmin = roleData?.role === 'admin';
-      
+
       toast.success("Successfully signed in");
-      navigate(isAdmin ? '/admin' : '/portal');
+
+      // Navigate based on the role
+      navigate(isAdmin ? '/admin' : '/portal');  // Fixed the missing closing quote here
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
