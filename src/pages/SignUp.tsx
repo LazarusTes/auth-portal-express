@@ -1,12 +1,11 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
 interface FormData {
@@ -60,42 +59,42 @@ const SignUp = () => {
         password: formData.password,
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError || !authData.user) {
+        throw signUpError || new Error("Sign up failed");
+      }
 
       // 2. Upload ID card if provided
       let idCardUrl = null;
       if (formData.idCard) {
         const fileExt = formData.idCard.name.split('.').pop();
-        const fileName = `${authData.user?.id}-${Math.random()}.${fileExt}`;
-        
-        const { error: uploadError, data } = await supabase.storage
+        const fileName = `${authData.user.id}-${Math.random()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
           .from('id-cards')
           .upload(fileName, formData.idCard);
 
         if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
+
+        // Get the public URL of the uploaded file
+        const { data: publicUrlData } = supabase.storage
           .from('id-cards')
           .getPublicUrl(fileName);
-          
-        idCardUrl = publicUrl;
+        idCardUrl = publicUrlData.publicUrl;
       }
 
-      // 3. Create user profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user?.id,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          username: formData.username,
-          date_of_birth: formData.dateOfBirth,
-          place_of_birth: formData.placeOfBirth,
-          residence: formData.residence,
-          nationality: formData.nationality,
-          id_card_url: idCardUrl,
-          status: 'pending'
-        });
+      // 3. Create user profile using a SECURITY DEFINER function via RPC
+      // This function (create_profile_for_new_user) must be created in your database.
+      const { error: profileError } = await supabase.rpc('create_profile_for_new_user', {
+        p_id: authData.user.id,
+        p_first_name: formData.firstName,
+        p_last_name: formData.lastName,
+        p_username: formData.username,
+        p_date_of_birth: formData.dateOfBirth,
+        p_place_of_birth: formData.placeOfBirth,
+        p_residence: formData.residence,
+        p_nationality: formData.nationality,
+        p_id_card_url: idCardUrl,
+      });
 
       if (profileError) throw profileError;
 
@@ -103,8 +102,8 @@ const SignUp = () => {
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
-          user_id: authData.user?.id,
-          role: 'user'
+          user_id: authData.user.id,
+          role: 'user',
         });
 
       if (roleError) throw roleError;
@@ -235,6 +234,8 @@ const SignUp = () => {
             </div>
           </div>
         );
+      default:
+        return null;
     }
   };
 
@@ -244,7 +245,12 @@ const SignUp = () => {
         <div className="space-y-2 text-center">
           <h1 className="text-3xl font-semibold tracking-tight">Create an Account</h1>
           <p className="text-sm text-muted-foreground">
-            Step {step} of 3: {step === 1 ? "Basic Information" : step === 2 ? "Personal Details" : "Document Upload"}
+            Step {step} of 3:{" "}
+            {step === 1
+              ? "Basic Information"
+              : step === 2
+              ? "Personal Details"
+              : "Document Upload"}
           </p>
         </div>
 
@@ -264,12 +270,12 @@ const SignUp = () => {
                 Previous
               </Button>
             )}
-            <Button
-              type="submit"
-              className="flex-1"
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating Account..." : step === 3 ? "Create Account" : "Next"}
+            <Button type="submit" className="flex-1" disabled={isLoading}>
+              {isLoading
+                ? "Creating Account..."
+                : step === 3
+                ? "Create Account"
+                : "Next"}
             </Button>
           </div>
         </form>
