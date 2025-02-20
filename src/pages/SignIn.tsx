@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -18,17 +19,47 @@ const SignIn = () => {
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual authentication
-      // Simulated auth for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate role check (replace with actual role check)
-      const isAdmin = email.includes('admin');
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      // Check user profile status
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileData?.status === 'pending') {
+        toast.error("Your account is pending approval");
+        await supabase.auth.signOut();
+        setIsLoading(false);
+        return;
+      }
+
+      if (profileData?.status === 'rejected') {
+        toast.error("Your account has been rejected");
+        await supabase.auth.signOut();
+        setIsLoading(false);
+        return;
+      }
+
+      // Get user role
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authData.user.id)
+        .single();
+
+      const isAdmin = roleData?.role === 'admin';
       
       toast.success("Successfully signed in");
       navigate(isAdmin ? '/admin' : '/portal');
-    } catch (error) {
-      toast.error("Invalid credentials");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to sign in");
     } finally {
       setIsLoading(false);
     }

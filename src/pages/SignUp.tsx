@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/lib/supabase";
 
 interface FormData {
   firstName: string;
@@ -53,12 +54,65 @@ const SignUp = () => {
 
     setIsLoading(true);
     try {
-      // TODO: Implement actual registration
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Account created successfully");
+      // 1. Sign up the user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (signUpError) throw signUpError;
+
+      // 2. Upload ID card if provided
+      let idCardUrl = null;
+      if (formData.idCard) {
+        const fileExt = formData.idCard.name.split('.').pop();
+        const fileName = `${authData.user?.id}-${Math.random()}.${fileExt}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('id-cards')
+          .upload(fileName, formData.idCard);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('id-cards')
+          .getPublicUrl(fileName);
+          
+        idCardUrl = publicUrl;
+      }
+
+      // 3. Create user profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user?.id,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          username: formData.username,
+          date_of_birth: formData.dateOfBirth,
+          place_of_birth: formData.placeOfBirth,
+          residence: formData.residence,
+          nationality: formData.nationality,
+          id_card_url: idCardUrl,
+          status: 'pending'
+        });
+
+      if (profileError) throw profileError;
+
+      // 4. Create user role (default to 'user')
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user?.id,
+          role: 'user'
+        });
+
+      if (roleError) throw roleError;
+
+      toast.success("Account created successfully! Please wait for admin approval.");
       navigate("/signin");
-    } catch (error) {
-      toast.error("Failed to create account");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create account");
     } finally {
       setIsLoading(false);
     }
